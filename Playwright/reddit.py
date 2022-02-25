@@ -27,6 +27,26 @@ async def login(username, password):
     await password.fill('jonReddit333*')
 
 
+async def downloadContent(linksToVisit):
+    if(len(linksToVisit) < 1):
+        print("ya")
+        return
+    else:
+        await linksToVisit[0].click()
+        # hago cosas
+        print("E")
+        sublist = linksToVisit[1:(len(linksToVisit)-1)]
+        await downloadContent(sublist)
+
+
+async def clickLinks(links):
+    async with async_playwright() as p:
+        for pos in range(0, len(links)):
+            browser = await p.chromium.launch()
+            page = await browser.new_page()
+            await page.goto("https://reddit.com"+links[pos])
+
+
 async def main():
     try:
         async with async_playwright() as p:
@@ -35,12 +55,7 @@ async def main():
             browser = await p.chromium.launch(headless=False)
             page = await browser.new_page()
             await page.goto("https://"+url)
-            # await page.locator('text = Iniciar').click()
-            # element = await page.query_selector('text = Iniciar Sesión')
-            # print(await element.inner_html())
-            # await element.click()
 
-            # time.sleep(3)
             usernameElement = await page.query_selector('#loginUsername')
 
             passwordElement = await page.query_selector('#loginPassword')
@@ -53,38 +68,28 @@ async def main():
 
             time.sleep(10)
             search = await page.query_selector('input')
-            print(await search.inner_html())
             await search.fill('crypto')
             time.sleep(2)
             await page.press('input', 'Enter')
 
-            # results = await page.query_selector('/html/body/div[1]/div/div[2]/div[2]/div/div/div/div[2]/div/div/div[2]/div[1]/div[2]/div[1]')
-            # /html/body/div[1]/div/div[2]/div[2]/div/div/div/div[2]/div/div/div[2]/div[1]/div[2]/div[1]/div[1]/div/div/div/div/div[2]/div/div/div[1]/a
-            # /html/body/div[1]/div/div[2]/div[2]/div/div/div/div[2]/div/div/div[2]/div[1]/div[2]/div[1]/div[2]/div/div/div/div/div[2]/div/div/div[1]/a
-            # results.query_selector_all()
+            time.sleep(5)
 
-            for contador in range(1, 8):
-                r = await page.query_selector('//html/body/div[1]/div/div[2]/div[2]/div/div/div/div[2]/div/div/div[2]/div[1]/div[2]/div[1]/div[1]/div/div/div/div/div[2]/div/div/div[1]')
-                print(Fore.RED + await r.inner_html())
+            results = await page.query_selector('//*[@id="SHORTCUT_FOCUSABLE_DIV"]/div[2]/div/div/div/div[2]/div/div/div[2]/div[1]/div[2]/div[1]/div[1]')
 
-            # results = await page.query_selector('//*[@id="SHORTCUT_FOCUSABLE_DIV"]/div[2]/div/div/div/div[2]/div/div/div[2]/div[1]/div[2]/div[1]/div[1]')
-            # resultsChildren = await results.query_selector_all('div')
-            # print(len(resultsChildren))
-            # for result in resultsChildren:
-                # print(Fore.GREEN + await result.inner_html()+"\n")
-             #   print("a")
+            resultsChildren = await results.query_selector_all('div')
+            print(len(resultsChildren))
+            linksToVisit = []
+            for child in range(1, len(resultsChildren)):
+                r = await page.query_selector('//html/body/div[1]/div/div[2]/div[2]/div/div/div/div[2]/div/div/div[2]/div[1]/div[2]/div[1]/div['+str(child)+']/div/div/div/div/div[2]/div/div/div[1]/a')
+                # print(await r.get_attribute('href'))
+                linksToVisit.append(await r.get_attribute('href'))
 
-            # await close(browser)
+            time.sleep(5)
+            await clickLinks(linksToVisit)
+            await browser.close()
+
     except Exception:
         print(traceback.format_exc())
         print("error")
 
 asyncio.run(main())
-
-
-# //*[@id="t3_s98fhs"]/div/div/div[2]/div[1]/div/div[1]/a                     //*[@id="SHORTCUT_FOCUSABLE_DIV"]/div[2]/div/div/div/div[2]/div/div/div[2]/div[1]/div[2]/div[1]/div[1]
-# link = await result.query_selector_all('div > div > div')
-# for l in link:
-#    print(Fore.BLUE + await l.inner_html())
-# print(Fore.BLUE +  link)      //*[@id="t3_sh0tgg"]/div/div/div[2]/div/div/div[1]/a
-##print(Fore.GREEN +result.count())
