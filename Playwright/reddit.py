@@ -28,23 +28,38 @@ async def login(username, password):
 
 
 async def downloadContent(linksToVisit):
-    if(len(linksToVisit) < 1):
-        print("ya")
-        return
-    else:
-        await linksToVisit[0].click()
-        # hago cosas
-        print("E")
-        sublist = linksToVisit[1:(len(linksToVisit)-1)]
-        await downloadContent(sublist)
+    async with async_playwright() as p:
+        if(len(linksToVisit) < 1):
+            print("ya")
+            return
+        else:
+            browser = await p.chromium.launch(headless=False)
+            page = await browser.new_page()
+            await page.goto("https://reddit.com"+linksToVisit[0])
+            sublist = linksToVisit[1:(len(linksToVisit)-1)]
+            print(linksToVisit[0])
+            time.sleep(5)
+            main = await page.query_selector('//html/body/div[1]/div/div[2]/div[3]/div/div/div/div[2]/div[1]/div[2]/div[1]/div')
+            text = await main.inner_text()
+            #writeToFile(text, (len(linksToVisit)-1))
+            await browser.close()
+            await downloadContent(sublist)
 
 
-async def clickLinks(links):
+""" async def clickLinks(links):
     async with async_playwright() as p:
         for pos in range(0, len(links)):
             browser = await p.chromium.launch()
             page = await browser.new_page()
-            await page.goto("https://reddit.com"+links[pos])
+            
+            
+            await page.goto("https://reddit.com"+links[pos]) """
+
+
+def writeToFile(text, index):
+    f = open("files/content"+str(index)+".txt", "w")
+    f.write(text)
+    f.close()
 
 
 async def main():
@@ -79,16 +94,23 @@ async def main():
             resultsChildren = await results.query_selector_all('div')
             print(len(resultsChildren))
             linksToVisit = []
+            linksToVisit.append(await (await page.query_selector('//html/body/div[1]/div/div[2]/div[2]/div/div/div/div[2]/div/div/div[2]/div[1]/div[2]/div[1]/div[0]/div/div/div/div/div[2]/div/div[1]/a')).get_attribute('href'))
+
+            print("ieup")
             for child in range(1, len(resultsChildren)):
                 r = await page.query_selector('//html/body/div[1]/div/div[2]/div[2]/div/div/div/div[2]/div/div/div[2]/div[1]/div[2]/div[1]/div['+str(child)+']/div/div/div/div/div[2]/div/div/div[1]/a')
-                # print(await r.get_attribute('href'))
+                #                               /html/body/div[1]/div/div[2]/div[2]/div/div/div/div[2]/div/div/div[2]/div[1]/div[2]/div[1]/div[0]/div/div/div/div/div[2]/div/div[1]/a
+                #                               /html/body/div[1]/div/div[2]/div[2]/div/div/div/div[2]/div/div/div[2]/div[1]/div[2]/div[2]/div[2]/div/div/div/div/div[2]/div[1]/div/div[1]/a
+                #                               /html/body/div[1]/div/div[2]/div[2]/div/div/div/div[2]/div/div/div[2]/div[1]/div[2]/div[2]/div[1]/div/div/div/div/div[2]/div/div/div[1]/a
+                print(await r.get_attribute('href'))
                 linksToVisit.append(await r.get_attribute('href'))
 
             time.sleep(5)
-            await clickLinks(linksToVisit)
+            await downloadContent(linksToVisit)
             await browser.close()
 
     except Exception:
+        await browser.close()
         print(traceback.format_exc())
         print("error")
 
